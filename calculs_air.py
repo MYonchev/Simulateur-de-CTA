@@ -10,7 +10,6 @@ RHO = 1.2
 P_ATM = 101325
 
 
-
 # CALCULS GENERAUX DE L'AIR
 
 def debit_massique(debit_m3_h, rho=RHO):
@@ -63,6 +62,9 @@ def point_rosee(T, x, P=P_ATM):
 
 def etat_air(T, HR, debit_m3_h, P=P_ATM):
     """Construit un etat d'air avec ses caracteristiques."""
+    if debit_m3_h < 0:
+        raise ValueError("Le debit d'air ne peut pas etre negatif.")
+
     x = x_depuis_T_HR(T, HR, P)
 
     return {
@@ -88,11 +90,15 @@ def actualiser(air):
     return air
 
 
-
 # MODULES DE CALCUL
+# Chaque module modifie le meme dictionnaire air.
+
 
 def filtre(air, delta_p):
     """Applique la perte de charge du filtre."""
+    if delta_p < 0:
+        raise ValueError("La perte de charge ne peut pas etre negative.")
+
     air["P"] -= delta_p
 
     return {
@@ -104,6 +110,9 @@ def filtre(air, delta_p):
 def batterie_chaude(air, T_sortie):
     """Calcule la puissance de chauffage."""
     T_entree = air["T"]
+
+    if T_sortie < T_entree:
+        raise ValueError("La temperature de sortie doit etre superieure a l'entree.")
 
     puissance_kw = (
         air["m_dot"] * CP * (T_sortie - T_entree)
@@ -122,6 +131,11 @@ def batterie_froide(air, T_sortie, x_sortie):
     """Calcule la puissance frigorifique et les condensats."""
     h_entree = air["h"]
     x_entree = air["x"]
+
+    if T_sortie > air["T"]:
+        raise ValueError("La temperature de sortie doit etre inferieure a l'entree.")
+    if x_sortie < 0 or x_sortie > x_entree:
+        raise ValueError("Le rapport d'humidite de sortie doit etre entre 0 et celui d'entree.")
 
     air["T"] = T_sortie
     air["x"] = x_sortie
@@ -146,6 +160,8 @@ def recuperateur(air, T_air_repris, rendement, delta_p=0):
     """Calcule la temperature de sortie du recuperateur."""
     if not 0 <= rendement <= 1:
         raise ValueError("Le rendement doit etre entre 0 et 1.")
+    if delta_p < 0:
+        raise ValueError("La perte de charge ne peut pas etre negative.")
 
     T_entree = air["T"]
 
@@ -166,8 +182,11 @@ def recuperateur(air, T_air_repris, rendement, delta_p=0):
 
 
 def humidificateur(air, x_sortie):
-    """Calcule le debit d'eau ajoute."""
+    """Calcule le debit d'eau ajoute. La temperature est supposee constante."""
     x_entree = air["x"]
+
+    if x_sortie < x_entree:
+        raise ValueError("Le rapport d'humidite de sortie doit etre superieur a l'entree.")
 
     debit_eau = air["m_dot"] * (
         x_sortie - x_entree
@@ -189,6 +208,8 @@ def ventilateur(air, delta_p, rendement):
         raise ValueError(
             "Le rendement doit etre superieur a 0 et inferieur ou egal a 1."
         )
+    if delta_p < 0:
+        raise ValueError("La pression fournie ne peut pas etre negative.")
 
     debit_m3_s = air["debit_m3_h"] / 3600
 
@@ -202,7 +223,6 @@ def ventilateur(air, delta_p, rendement):
         "puissance_air_kW": puissance_air_kw,
         "puissance_absorbee_kW": puissance_absorbee_kw
     }
-
 
 
 # BILAN GENERAL
@@ -263,6 +283,6 @@ def afficher_etat(air):
 
     print(
         "Point de rosee :",
-        point_rosee(air["T"], air["x"]),
+        point_rosee(air["T"], air["x"], air["P"]),
         "°C"
     )
