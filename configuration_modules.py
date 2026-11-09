@@ -1,64 +1,49 @@
 # CONFIGURATION DES MODULES DE LA CTA
 
-
 import calculs_air as ca
 
 
 # MODULE 1 : FILTRATION
 
-def filtration():
+def filtration(air):
     print("\n--- CONFIGURATION : FILTRATION ---")
 
     type_filtre = input("Type de filtre : ")
-    debit_air = float(input("Debit d'air (m3/h) : "))
     perte_filtre = float(input("Perte de charge du filtre (Pa) : "))
 
-    # Lien avec calculs_air.py
-    debit_massique = ca.debit_massique(debit_air)
+    # Lien avec calculs_air.py : on utilise le meme etat d'air.
+    resultat = ca.filtre(air, perte_filtre)
 
     print("\n--- RESULTATS FILTRATION ---")
     print("Type de filtre :", type_filtre)
-    print("Debit volumique =", debit_air, "m3/h")
-    print("Debit massique =", round(debit_massique, 4), "kg/s")
+    print("Debit volumique =", air["debit_m3_h"], "m3/h")
+    print("Debit massique =", round(air["m_dot"], 4), "kg/s")
     print("Perte de charge =", perte_filtre, "Pa")
 
-    return {
-        "module": "Filtration",
-        "debit_massique": debit_massique,
-        "perte_charge_Pa": perte_filtre
-    }
+    return resultat
 
 
 # MODULE 2 : BATTERIE CHAUDE
 
-def batterie_chaude():
+def batterie_chaude(air):
     print("\n--- CONFIGURATION : BATTERIE CHAUDE ---")
 
     type_batterie = input("Type de batterie chaude : ")
-
-    debit_air = float(input("Debit d'air (m3/h) : "))
-    temperature_entree = float(input("Temperature entree (°C) : "))
-    humidite_entree = float(input("Humidite relative entree (%) : "))
+    temperature_entree = air["T"]
+    humidite_entree = air["HR"]
     temperature_sortie = float(input("Temperature sortie (°C) : "))
 
-    # Creation de l'etat d'air avec calculs_air.py
-    air = ca.etat_air(
-        temperature_entree,
-        humidite_entree,
-        debit_air
-    )
+    # Calcul de l'enthalpie d'entree avant de modifier l'air.
+    enthalpie_entree = air["h"]
 
-    # Calcul de la puissance avec calculs_air.py
-    resultat = ca.batterie_chaude(
-        air,
-        temperature_sortie
-    )
+    # Calcul de la puissance avec calculs_air.py.
+    resultat = ca.batterie_chaude(air, temperature_sortie)
 
     print("\n--- RESULTATS BATTERIE CHAUDE ---")
     print("Type de batterie :", type_batterie)
-    print("Enthalpie entree =", round(
-        ca.enthalpie(temperature_entree, air["x"]), 2
-    ), "kJ/kg")
+    print("Temperature entree =", temperature_entree, "°C")
+    print("Humidite relative entree =", round(humidite_entree, 1), "%")
+    print("Enthalpie entree =", round(enthalpie_entree, 2), "kJ/kg")
     print("Temperature sortie =", temperature_sortie, "°C")
     print("Puissance de chauffage =", round(
         resultat["puissance_chauffage_kW"], 2
@@ -69,32 +54,24 @@ def batterie_chaude():
 
 # MODULE 3 : BATTERIE FROIDE
 
-def batterie_froide():
+def batterie_froide(air):
     print("\n--- CONFIGURATION : BATTERIE FROIDE ---")
 
     type_batterie = input("Type de batterie froide : ")
-
-    debit_air = float(input("Debit d'air (m3/h) : "))
-    temperature_entree = float(input("Temperature entree (°C) : "))
-    humidite_entree = float(input("Humidite relative entree (%) : "))
+    temperature_entree = air["T"]
+    humidite_entree = air["HR"]
+    enthalpie_entree = air["h"]
 
     temperature_sortie = float(input("Temperature sortie (°C) : "))
     humidite_sortie = float(input("Humidite specifique sortie (kg/kg) : "))
 
-    # Creation de l'etat d'air
-    air = ca.etat_air(
-        temperature_entree,
-        humidite_entree,
-        debit_air
-    )
-
-    # Calcul de l'enthalpie de sortie
+    # Calcul de l'enthalpie de sortie.
     enthalpie_sortie = ca.enthalpie(
         temperature_sortie,
         humidite_sortie
     )
 
-    # Calcul de la puissance frigorifique
+    # Calcul de la puissance avec calculs_air.py.
     resultat = ca.batterie_froide(
         air,
         temperature_sortie,
@@ -103,7 +80,9 @@ def batterie_froide():
 
     print("\n--- RESULTATS BATTERIE FROIDE ---")
     print("Type de batterie :", type_batterie)
-    print("Enthalpie entree =", round(air["h"], 2), "kJ/kg")
+    print("Temperature entree =", temperature_entree, "°C")
+    print("Humidite relative entree =", round(humidite_entree, 1), "%")
+    print("Enthalpie entree =", round(enthalpie_entree, 2), "kJ/kg")
     print("Enthalpie sortie =", round(enthalpie_sortie, 2), "kJ/kg")
     print("Puissance frigorifique =", round(
         resultat["puissance_froid_kW"], 2
@@ -117,26 +96,14 @@ def batterie_froide():
 
 # MODULE 4 : VENTILATEUR
 
-def ventilateur():
+def ventilateur(air):
     print("\n--- CONFIGURATION : VENTILATEUR ---")
 
     type_ventilateur = input("Type de ventilateur : ")
-
-    debit_air = float(input("Debit d'air (m3/h) : "))
-    temperature_air = float(input("Temperature de l'air (°C) : "))
-    humidite_air = float(input("Humidite relative de l'air (%) : "))
-
-    perte_charge = float(input("Perte de charge totale (Pa) : "))
+    perte_charge = float(input("Pression fournie / perte de charge totale (Pa) : "))
     rendement = float(input("Rendement (entre 0 et 1) : "))
 
-    # Creation de l'etat d'air
-    air = ca.etat_air(
-        temperature_air,
-        humidite_air,
-        debit_air
-    )
-
-    # Calcul de la puissance avec calculs_air.py
+    # Calcul de la puissance avec calculs_air.py.
     resultat = ca.ventilateur(
         air,
         perte_charge,
@@ -145,8 +112,8 @@ def ventilateur():
 
     print("\n--- RESULTATS VENTILATEUR ---")
     print("Type de ventilateur :", type_ventilateur)
-    print("Debit volumique =", debit_air, "m3/h")
-    print("Perte de charge =", perte_charge, "Pa")
+    print("Debit volumique =", air["debit_m3_h"], "m3/h")
+    print("Pression fournie =", perte_charge, "Pa")
     print("Rendement =", rendement)
     print("Puissance absorbee =", round(
         resultat["puissance_absorbee_kW"] * 1000, 2
@@ -157,24 +124,16 @@ def ventilateur():
 
 # MODULE 5 : HUMIDIFICATEUR
 
-def humidificateur():
+def humidificateur(air):
     print("\n--- CONFIGURATION : HUMIDIFICATEUR ---")
 
     type_humidificateur = input("Type d'humidificateur : ")
-
-    debit_air = float(input("Debit d'air (m3/h) : "))
-    temperature_entree = float(input("Temperature entree (°C) : "))
-    humidite_entree = float(input("Humidite relative entree (%) : "))
+    temperature_entree = air["T"]
+    humidite_entree = air["HR"]
+    x_entree = air["x"]
     humidite_sortie = float(input("Humidite specifique sortie (kg/kg) : "))
 
-    # Creation de l'etat d'air
-    air = ca.etat_air(
-        temperature_entree,
-        humidite_entree,
-        debit_air
-    )
-
-    # Calcul de l'eau ajoutee avec calculs_air.py
+    # Calcul de l'eau ajoutee avec calculs_air.py.
     resultat = ca.humidificateur(
         air,
         humidite_sortie
@@ -182,9 +141,9 @@ def humidificateur():
 
     print("\n--- RESULTATS HUMIDIFICATEUR ---")
     print("Type d'humidificateur :", type_humidificateur)
-    print("Humidite specifique entree =", round(
-        ca.x_depuis_T_HR(temperature_entree, humidite_entree), 6
-    ), "kg/kg")
+    print("Temperature entree =", temperature_entree, "°C")
+    print("Humidite relative entree =", round(humidite_entree, 1), "%")
+    print("Humidite specifique entree =", round(x_entree, 6), "kg/kg")
     print("Humidite specifique sortie =", humidite_sortie, "kg/kg")
     print("Debit d'eau ajoute =", round(
         resultat["eau_ajoutee_kg_s"], 5
@@ -196,30 +155,18 @@ def humidificateur():
     return resultat
 
 
-
 # MODULE 6 : RECUPERATEUR
 
-def recuperateur():
+def recuperateur(air):
     print("\n--- CONFIGURATION : RECUPERATEUR ---")
 
     type_recuperateur = input("Type de recuperateur : ")
-
-    debit_air = float(input("Debit d'air (m3/h) : "))
-    temperature_air_neuf = float(input("Temperature air neuf (°C) : "))
-    humidite_air_neuf = float(input("Humidite relative air neuf (%) : "))
-
+    temperature_air_neuf = air["T"]
     temperature_air_repris = float(input("Temperature air repris (°C) : "))
     rendement = float(input("Rendement (entre 0 et 1) : "))
     perte_charge = float(input("Perte de charge (Pa) : "))
 
-    # Creation de l'etat d'air neuf
-    air = ca.etat_air(
-        temperature_air_neuf,
-        humidite_air_neuf,
-        debit_air
-    )
-
-    # Calcul du recuperateur avec calculs_air.py
+    # Calcul du recuperateur avec calculs_air.py.
     resultat = ca.recuperateur(
         air,
         temperature_air_repris,
@@ -240,13 +187,27 @@ def recuperateur():
     return resultat
 
 
-
 # MENU PRINCIPAL
 
 def menu():
+    print("\n================================")
+    print(" CONFIGURATION DE LA CTA")
+    print("================================")
+
+    # L'etat de l'air est cree une seule fois au debut de la simulation.
+    temperature = float(input("Temperature de l'air entrant (°C) : "))
+    humidite = float(input("Humidite relative de l'air entrant (%) : "))
+    debit_air = float(input("Debit d'air (m3/h) : "))
+
+    air = ca.etat_air(temperature, humidite, debit_air)
+    resultats = []
+
+    print("\nEtat initial de l'air :")
+    ca.afficher_etat(air)
+
     while True:
         print("\n================================")
-        print(" CONFIGURATION DE LA CTA")
+        print(" AJOUTER UN MODULE A LA CTA")
         print("================================")
         print("1 - Filtration")
         print("2 - Batterie chaude")
@@ -254,43 +215,48 @@ def menu():
         print("4 - Ventilateur")
         print("5 - Humidificateur")
         print("6 - Recuperateur")
-        print("7 - Configurer tous les modules")
+        print("7 - Terminer la simulation et afficher le bilan")
         print("0 - Quitter")
 
-        choix = input("Choisir une option : ")
+        choix = input("Choisir un module : ")
 
         if choix == "1":
-            filtration()
-
+            resultat = filtration(air)
         elif choix == "2":
-            batterie_chaude()
-
+            resultat = batterie_chaude(air)
         elif choix == "3":
-            batterie_froide()
-
+            resultat = batterie_froide(air)
         elif choix == "4":
-            ventilateur()
-
+            resultat = ventilateur(air)
         elif choix == "5":
-            humidificateur()
-
+            resultat = humidificateur(air)
         elif choix == "6":
-            recuperateur()
-
+            resultat = recuperateur(air)
         elif choix == "7":
-            filtration()
-            batterie_chaude()
-            batterie_froide()
-            ventilateur()
-            humidificateur()
-            recuperateur()
-
+            break
         elif choix == "0":
             print("Fin du programme.")
-            break
-
+            return
         else:
             print("Choix invalide. Veuillez recommencer.")
+            continue
+
+        resultats.append(resultat)
+        print("\nEtat de l'air apres ce module :")
+        ca.afficher_etat(air)
+
+    # Affichage du bilan de tous les modules utilises.
+    resultat_bilan = ca.bilan(resultats)
+
+    print("\n================================")
+    print(" BILAN GENERAL DE LA CTA")
+    print("================================")
+
+    for nom, valeur in resultat_bilan.items():
+        print(nom, "=", round(valeur, 3))
+
+    print("\nEtat final de l'air :")
+    ca.afficher_etat(air)
 
 
 # LANCEMENT DU PROGRAMME
