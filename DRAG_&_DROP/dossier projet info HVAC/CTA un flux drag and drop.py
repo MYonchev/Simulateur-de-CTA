@@ -41,7 +41,7 @@ images_stock = {}
 donnees_glissement = {"nom_en_cours": None}
 
 try:
-    img_pil = Image.open("CTA.png").resize((950, 350))
+    img_pil = Image.open("assets/Images_CTA/CTA.png").resize((950, 350))
     images_stock["fond"] = ImageTk.PhotoImage(img_pil)
     zone_cta = Label(fenetre, image=images_stock["fond"], bd=0)
 except:
