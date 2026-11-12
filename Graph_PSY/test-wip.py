@@ -72,3 +72,7 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
+
+
+""" pour la docu " pip freeze > requirements.txt "
+    et apres "pip install -r requirements.txt" """
