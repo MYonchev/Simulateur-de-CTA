@@ -46,12 +46,12 @@ dictionnaire_widgets_modules = {}
 dictionnaire_boutons_panel = {}
 dictionnaire_images = {}
 
-donnees_glissement = {"nom_module_en_cours": None}
+donnees_glissement = {"nom_module_en_cours": None, "x_relatif_cta": 0, "y_relatif_cta": 0}
 
 
 # --- INTERFACE GRAPHIQUE DE BASE ---
 try:
-    image_cta_pil = Image.open("CTA_double.png").resize((950, 350))
+    image_cta_pil = Image.open("assets/Images_CTA/CTA_double.png").resize((950, 350))
     dictionnaire_images["fond_cta"] = ImageTk.PhotoImage(image_cta_pil)
     zone_centrale_cta = Label(fenetre_principale, image=dictionnaire_images["fond_cta"], bd=0)
 except Exception:
@@ -128,7 +128,15 @@ def verifier_montage():
         return False
 
 
-# --- GESTION DU DRAG & DROP (SANS LAMBDA) ---
+# --- FONCTION CLASSIQUE POUR REMPLACER LE LAMBDA DE DISTANCE ---
+def calculer_distance_slot(id_slot):
+    """Calcule la distance entre la position actuelle de la souris et un slot donné."""
+    distance_x = abs(CONFIGURATION_EMPLACEMENTS[id_slot]["x"] - donnees_glissement["x_relatif_cta"])
+    distance_y = abs(CONFIGURATION_EMPLACEMENTS[id_slot]["y"] - donnees_glissement["y_relatif_cta"])
+    return distance_x + distance_y
+
+
+# --- GESTION DU DRAG & DROP (100% SANS LAMBDA) ---
 def demarrer_glissement(evenement):
     nom_module = evenement.widget.nom_module_associe
     donnees_glissement["nom_module_en_cours"] = nom_module
@@ -157,18 +165,15 @@ def arreter_glissement(evenement):
         return
     
     widget_cta = dictionnaire_widgets_modules[nom_module]
-    x_relatif_cta = fenetre_principale.winfo_pointerx() - zone_centrale_cta.winfo_rootx()
-    y_relatif_cta = fenetre_principale.winfo_pointery() - zone_centrale_cta.winfo_rooty()
+    donnees_glissement["x_relatif_cta"] = fenetre_principale.winfo_pointerx() - zone_centrale_cta.winfo_rootx()
+    donnees_glissement["y_relatif_cta"] = fenetre_principale.winfo_pointery() - zone_centrale_cta.winfo_rooty()
     
     largeur_cta = zone_centrale_cta.winfo_width()
     hauteur_cta = zone_centrale_cta.winfo_height()
     
-    if 0 <= x_relatif_cta <= largeur_cta and 0 <= y_relatif_cta <= hauteur_cta:
-        # Trouver l'emplacement le plus proche
-        slot_le_plus_proche = min(
-            CONFIGURATION_EMPLACEMENTS.keys(),
-            key=lambda id_slot: abs(CONFIGURATION_EMPLACEMENTS[id_slot]["x"] - x_relatif_cta) + abs(CONFIGURATION_EMPLACEMENTS[id_slot]["y"] - y_relatif_cta)
-        )
+    if 0 <= donnees_glissement["x_relatif_cta"] <= largeur_cta and 0 <= donnees_glissement["y_relatif_cta"] <= hauteur_cta:
+        # Trouver l'emplacement le plus proche (en utilisant la fonction def au lieu de lambda)
+        slot_le_plus_proche = min(CONFIGURATION_EMPLACEMENTS.keys(), key=calculer_distance_slot)
         
         # Libérer l'ancien slot si le module y était déjà
         for id_slot, data in CONFIGURATION_EMPLACEMENTS.items():
@@ -232,8 +237,9 @@ def mettre_a_jour_image_module(widget_cta, nom_module, largeur, hauteur):
         widget_cta.config(image=image_tk)
 
 
-# --- CRÉATION AUTOMATISÉE DES BOUTONS LATÉRAUX ---
-for index, (nom_module, fichier_image) in enumerate(MODULES_DISPONIBLES.items()):
+# --- CRÉATION AUTOMATISÉE DES BOUTONS LATÉRAUX DANS LE BON ORDRE ---
+for index, nom_module in enumerate(ORDRE_ATTENDU_MODULES.values()):
+    fichier_image = MODULES_DISPONIBLES[nom_module]
     image_miniature = charger_et_redimensionner_image(fichier_image, 35, 28)
     if image_miniature:
         dictionnaire_images[f"mini_{nom_module}"] = image_miniature
@@ -248,13 +254,12 @@ for index, (nom_module, fichier_image) in enumerate(MODULES_DISPONIBLES.items())
         anchor="w"
     )
     
-    # Attacher le nom du module directement à l'objet bouton pour s'passer de lambda
     bouton_module.nom_module_associe = nom_module
     bouton_module.bind("<Button-1>", demarrer_glissement)
     bouton_module.bind("<B1-Motion>", en_cours_de_glissement)
     bouton_module.bind("<ButtonRelease-1>", arreter_glissement)
     
-    bouton_module.place(relx=0.03, rely=0.02 + (index * 0.12), relwidth=0.94, height=45)
+    bouton_module.place(relx=0.03, rely=0.02 + (index * 0.12), relwidth=0.94, height=42)
     dictionnaire_boutons_panel[nom_module] = bouton_module
     dictionnaire_etats_modules[nom_module] = False
 
